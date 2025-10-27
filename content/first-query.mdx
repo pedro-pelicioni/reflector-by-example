@@ -1,0 +1,249 @@
+---
+title: Your First Oracle Query
+description: Learn how to query price data from Reflector Oracle in a Soroban smart contract
+---
+
+# Your First Oracle Query
+
+Let's make your first query to the Reflector Oracle! This tutorial will show you how to get the current Bitcoin price in USD.
+
+## The Contract
+
+Here's a simple contract that queries the BTC/USD price from Reflector:
+
+<Playground snippetFile="first-query.rs" />
+
+## Breaking It Down
+
+### 1. Contract Setup
+
+```rust
+#![no_std]
+use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, symbol_short};
+```
+
+- `#![no_std]` - Required for Soroban contracts (no standard library)
+- Imports necessary types from the Soroban SDK
+
+### 2. The Contract Structure
+
+```rust
+#[contract]
+pub struct FirstQuery;
+```
+
+Every Soroban contract needs a struct marked with `#[contract]`.
+
+### 3. Querying the Oracle
+
+```rust
+pub fn get_btc_price(env: Env, oracle: Address) -> Option<(i128, u64)> {
+    let base = symbol_short!("BTC");
+    let quote = symbol_short!("USD");
+    
+    let price_data: Option<(i128, u64)> = env.invoke_contract(
+        &oracle,
+        &Symbol::new(&env, "lastprice"),
+        (base, quote).into_val(&env),
+    );
+    
+    price_data
+}
+```
+
+**How it works:**
+
+1. **Define the asset pair** - `BTC` (base) and `USD` (quote)
+2. **Call the oracle** - Invoke the `lastprice` function
+3. **Return the data** - Get price and timestamp
+
+## Return Value
+
+The oracle returns `Option<(i128, u64)>`:
+
+- **`i128`** - The price with 14 decimal places
+- **`u64`** - Unix timestamp when price was updated
+
+### Example Price Conversion
+
+If BTC is $65,432.50:
+
+```
+Raw value: 6543250000000000000
+Decimal: 65432.50 × 10^14
+```
+
+To get the actual price:
+
+```rust
+let actual_price = raw_price / 100_000_000_000_000;
+// actual_price = 65432 (in whole dollars)
+```
+
+## Testing Your Contract
+
+Create a test in `src/lib.rs`:
+
+```rust
+#[cfg(test)]
+mod test {
+    use super::*;
+    use soroban_sdk::{testutils::Address as _, Address, Env};
+
+    #[test]
+    fn test_query() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, FirstQuery);
+        let client = FirstQueryClient::new(&env, &contract_id);
+        
+        // Mock oracle address for testing
+        let oracle = Address::generate(&env);
+        
+        // In real tests, you'd mock the oracle response
+        let result = client.get_btc_price(&oracle);
+        
+        // Verify the result
+        if let Some((price, timestamp)) = result {
+            assert!(price > 0);
+            assert!(timestamp > 0);
+        }
+    }
+}
+```
+
+## Deploying Your Contract
+
+1. **Build the contract:**
+
+```bash
+soroban contract build
+```
+
+2. **Deploy to testnet:**
+
+```bash
+soroban contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/first_query.wasm \
+  --network testnet \
+  --source alice
+```
+
+3. **Invoke your function:**
+
+```bash
+soroban contract invoke \
+  --id YOUR_CONTRACT_ID \
+  --network testnet \
+  --source alice \
+  -- \
+  get_btc_price \
+  --oracle ORACLE_CONTRACT_ID
+```
+
+## Common Patterns
+
+### Getting Just the Price
+
+Sometimes you only need the price value:
+
+```rust
+pub fn get_price_only(env: Env, oracle: Address) -> Option<i128> {
+    let result = Self::get_btc_price(env, oracle);
+    result.map(|(price, _)| price)
+}
+```
+
+### Querying Different Assets
+
+Query any supported asset pair:
+
+```rust
+pub fn get_eth_price(env: Env, oracle: Address) -> Option<(i128, u64)> {
+    let base = symbol_short!("ETH");
+    let quote = symbol_short!("USD");
+    
+    env.invoke_contract(
+        &oracle,
+        &Symbol::new(&env, "lastprice"),
+        (base, quote).into_val(&env),
+    )
+}
+```
+
+## Supported Asset Pairs
+
+Reflector supports many asset pairs:
+
+- **Crypto**: BTC/USD, ETH/USD, XLM/USD
+- **Stables**: USDC/USD, EURC/USD
+- **Commodities**: XAU/USD (Gold), XAG/USD (Silver)
+- **Forex**: EUR/USD, GBP/USD
+
+## Key Concepts
+
+### 1. Asset Symbols
+
+Use `symbol_short!()` for assets up to 9 characters:
+
+```rust
+let btc = symbol_short!("BTC");
+let usdc = symbol_short!("USDC");
+```
+
+### 2. Contract Invocation
+
+`env.invoke_contract()` calls another contract's function:
+
+```rust
+env.invoke_contract(
+    &target_contract,    // Contract to call
+    &function_name,      // Function to invoke
+    arguments,           // Function arguments
+)
+```
+
+### 3. Option Handling
+
+The oracle returns `Option` because prices might not be available:
+
+```rust
+match price_data {
+    Some((price, timestamp)) => {
+        // Price is available
+    },
+    None => {
+        // No price data available
+    }
+}
+```
+
+## Best Practices
+
+### ✅ Do's
+
+- Always handle the `Option` return type
+- Check timestamp freshness (covered in next tutorial)
+- Validate price is positive
+- Use appropriate decimal conversions
+
+### ❌ Don'ts
+
+- Don't assume prices are always available
+- Don't ignore timestamps
+- Don't hardcode oracle addresses
+- Don't forget error handling
+
+## Next Steps
+
+Great job! You've made your first oracle query. Now let's learn to build production-ready contracts:
+
+- [Price Consumer](/price-consumer) - Add error handling and staleness checks
+- [Multi-Asset Queries](/multi-asset) - Query multiple prices efficiently
+- [Lending Protocol](/lending-protocol) - Build a real DeFi application
+
+## Resources
+
+- [Reflector API Reference](https://reflector.network/docs/api)
+- [Soroban SDK Docs](https://docs.rs/soroban-sdk)
+- [Example Contracts](https://github.com/reflector-network/examples)
+

@@ -1,0 +1,93 @@
+---
+title: Introduction to Reflector Oracle
+description: Learn what Reflector is and how it brings real-world data to Stellar's Soroban smart contracts
+---
+
+# Introduction to Reflector Oracle
+
+Reflector is a decentralized oracle network built specifically for the Stellar blockchain. It provides reliable, real-time price feeds that smart contracts can use to access off-chain data.
+
+## What is an Oracle?
+
+Blockchain networks are isolated systems that cannot directly access external data. **Oracles** solve this problem by acting as bridges between blockchains and the real world, providing smart contracts with:
+
+- 📊 **Price Feeds** - Real-time cryptocurrency and asset prices
+- 💱 **Exchange Rates** - Fiat currency conversion rates  
+- 📈 **Market Data** - Trading volumes, market caps, and more
+
+## Why Reflector?
+
+Reflector is designed specifically for Stellar's Soroban smart contract platform with several key advantages:
+
+### Decentralized & Secure
+Multiple independent node operators provide price data, preventing single points of failure.
+
+### Low Latency
+Prices are updated frequently, ensuring your contracts always have fresh data.
+
+### Cost Effective
+Built natively on Stellar, benefiting from the network's low transaction fees.
+
+### Easy Integration
+Simple, developer-friendly API that takes minutes to integrate.
+
+## How Reflector Works
+
+```
+1. Data Sources → Multiple exchanges and price feeds
+2. Node Operators → Aggregate and validate price data
+3. Stellar Blockchain → Price data published on-chain
+4. Your Contract → Query prices via simple function calls
+```
+
+## Common Use Cases
+
+### DeFi Protocols
+- **Lending & Borrowing**: Determine collateral values and liquidation thresholds
+- **DEXs**: Calculate fair exchange rates and slippage
+- **Stablecoins**: Maintain price pegs
+
+### NFT Platforms
+- **Dynamic Pricing**: Price NFTs based on real-world asset values
+- **Fractional Ownership**: Calculate share values
+
+### Insurance
+- **Parametric Insurance**: Trigger payouts based on oracle data
+- **Risk Assessment**: Evaluate collateral and coverage
+
+## Available Price Feeds
+
+Reflector provides price feeds for major cryptocurrencies and assets:
+
+- **Crypto**: BTC, ETH, XLM, and more
+- **Stablecoins**: USDC, EURC
+- **Commodities**: Gold (XAU), Silver (XAG)
+- **Fiat**: USD, EUR pairs
+
+## Price Data Format
+
+All prices in Reflector use **14 decimal places** for precision:
+
+```rust
+// Example: BTC price of $65,432.50
+// Returned as: 6543250000000000000 (65432.50 × 10^14)
+
+let (price, timestamp) = oracle_price;
+// price: i128 with 14 decimals
+// timestamp: u64 Unix timestamp
+```
+
+## Next Steps
+
+Now that you understand what Reflector is, let's set up your development environment and make your first oracle query!
+
+- [Installation Guide](/installation) - Set up Soroban and tools
+- [First Query](/first-query) - Make your first price query
+- [Price Consumer](/price-consumer) - Build a production-ready consumer
+
+## Learn More
+
+- [Official Documentation](https://reflector.network/docs)
+- [GitHub Repository](https://github.com/reflector-network)
+- [Join Discord](https://discord.com/invite/v2ggfDty2d)
+

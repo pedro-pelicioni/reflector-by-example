@@ -1,0 +1,422 @@
+---
+title: Multi-Asset Queries
+description: Learn how to efficiently query multiple asset prices in a single call
+---
+
+# Multi-Asset Queries
+
+When you need prices for multiple assets, querying them one by one is inefficient. Reflector's `lastprices` function lets you batch multiple queries into a single call.
+
+## The Contract
+
+<Playground snippetFile="multi-asset.rs" />
+
+## Why Batch Queries?
+
+### Single Queries (Inefficient)
+
+```rust
+// ❌ Multiple contract calls
+let btc_price = query_price(oracle, "BTC", "USD");
+let eth_price = query_price(oracle, "ETH", "USD");
+let xlm_price = query_price(oracle, "XLM", "USD");
+// Total: 3 contract invocations
+```
+
+### Batch Query (Efficient)
+
+```rust
+// ✅ Single contract call
+let prices = query_multiple_prices(oracle, assets);
+// Total: 1 contract invocation
+```
+
+**Benefits:**
+- Lower gas costs
+- Faster execution
+- Atomic price data (all at same block)
+
+## The lastprices Function
+
+### Signature
+
+```rust
+fn lastprices(assets: Vec<(Symbol, Symbol)>) -> Vec<Option<(i128, u64)>>
+```
+
+**Input:** Vector of asset pairs (base, quote)  
+**Output:** Vector of optional price data
+
+### Example Usage
+
+```rust
+pub fn get_crypto_prices(
+    env: Env,
+    oracle: Address,
+) -> Vec<Option<(i128, u64)>> {
+    let mut assets = vec![&env];
+    
+    // Add asset pairs
+    assets.push_back((symbol_short!("BTC"), symbol_short!("USD")));
+    assets.push_back((symbol_short!("ETH"), symbol_short!("USD")));
+    assets.push_back((symbol_short!("XLM"), symbol_short!("USD")));
+    
+    // Single call to oracle
+    env.invoke_contract(
+        &oracle,
+        &Symbol::new(&env, "lastprices"),
+        (assets,).into_val(&env),
+    )
+}
+```
+
+## Portfolio Valuation
+
+Calculate total portfolio value across multiple assets:
+
+```rust
+pub fn get_portfolio_value(
+    env: Env,
+    oracle: Address,
+    btc_amount: i128,
+    eth_amount: i128,
+    xlm_amount: i128,
+) -> i128 {
+    let prices = Self::get_crypto_prices(env, oracle);
+    let mut total_value: i128 = 0;
+    
+    // BTC value
+    if let Some(Some((btc_price, _))) = prices.get(0) {
+        total_value += (btc_amount * btc_price) / 100_000_000_000_000;
+    }
+    
+    // ETH value
+    if let Some(Some((eth_price, _))) = prices.get(1) {
+        total_value += (eth_amount * eth_price) / 100_000_000_000_000;
+    }
+    
+    // XLM value
+    if let Some(Some((xlm_price, _))) = prices.get(2) {
+        total_value += (xlm_amount * xlm_price) / 100_000_000_000_000;
+    }
+    
+    total_value
+}
+```
+
+**Example:**
+```
+Holdings:
+- 1 BTC at $65,000 = $65,000
+- 10 ETH at $3,200 = $32,000
+- 10,000 XLM at $0.12 = $1,200
+
+Total Portfolio Value: $98,200
+```
+
+## Working with Vectors
+
+### Creating Vectors
+
+```rust
+use soroban_sdk::{vec, Vec};
+
+let mut assets = vec![&env];
+assets.push_back((symbol_short!("BTC"), symbol_short!("USD")));
+```
+
+### Accessing Results
+
+```rust
+let prices = get_prices(oracle);
+
+// Access by index
+if let Some(Some((price, timestamp))) = prices.get(0) {
+    // BTC price available
+}
+
+// Iterate over all
+for i in 0..prices.len() {
+    if let Some(Some((price, timestamp))) = prices.get(i) {
+        // Process price
+    }
+}
+```
+
+### Handling Missing Prices
+
+```rust
+match prices.get(index) {
+    Some(Some((price, timestamp))) => {
+        // Price is available
+    },
+    Some(None) => {
+        // Oracle returned None for this asset
+    },
+    None => {
+        // Index out of bounds
+    }
+}
+```
+
+## Advanced Patterns
+
+### Cross-Rate Calculation
+
+Calculate exchange rates between any two assets:
+
+```rust
+pub fn get_cross_rate(
+    env: Env,
+    oracle: Address,
+    from: Symbol,
+    to: Symbol,
+) -> Option<i128> {
+    let mut assets = vec![&env];
+    assets.push_back((from.clone(), symbol_short!("USD")));
+    assets.push_back((to.clone(), symbol_short!("USD")));
+    
+    let prices = env.invoke_contract(
+        &oracle,
+        &Symbol::new(&env, "lastprices"),
+        (assets,).into_val(&env),
+    );
+    
+    // Get both prices
+    let from_usd = prices.get(0)??; // from/USD
+    let to_usd = prices.get(1)??;   // to/USD
+    
+    // Calculate from/to rate
+    let rate = (from_usd.0 * 100_000_000_000_000) / to_usd.0;
+    Some(rate)
+}
+```
+
+**Example:** Get ETH/BTC rate
+```
+ETH/USD = $3,200
+BTC/USD = $65,000
+ETH/BTC = $3,200 / $65,000 = 0.0492 BTC
+```
+
+### Portfolio Rebalancing
+
+Check if portfolio needs rebalancing:
+
+```rust
+pub fn needs_rebalancing(
+    env: Env,
+    oracle: Address,
+    holdings: Vec<(Symbol, i128)>,
+    target_weights: Vec<i128>,
+) -> bool {
+    // Get all prices
+    let mut assets = vec![&env];
+    for holding in holdings.iter() {
+        assets.push_back((holding.0.clone(), symbol_short!("USD")));
+    }
+    
+    let prices = get_prices(oracle, assets);
+    
+    // Calculate current weights
+    let total_value = calculate_total_value(&holdings, &prices);
+    let current_weights = calculate_weights(&holdings, &prices, total_value);
+    
+    // Check if any weight deviates > 5%
+    for i in 0..holdings.len() {
+        let deviation = (current_weights.get(i).unwrap() - target_weights.get(i).unwrap()).abs();
+        if deviation > 5 {
+            return true;
+        }
+    }
+    
+    false
+}
+```
+
+### Stablecoin Depeg Detection
+
+Monitor stablecoins for depegging events:
+
+```rust
+pub fn check_stablecoin_peg(
+    env: Env,
+    oracle: Address,
+) -> Vec<bool> {
+    let mut assets = vec![&env];
+    assets.push_back((symbol_short!("USDC"), symbol_short!("USD")));
+    assets.push_back((symbol_short!("USDT"), symbol_short!("USD")));
+    assets.push_back((symbol_short!("DAI"), symbol_short!("USD")));
+    
+    let prices = get_prices(oracle, assets);
+    let mut is_pegged = vec![&env];
+    
+    const PEG_THRESHOLD: i128 = 5_000_000_000_000; // 0.05 (5%)
+    const TARGET_PRICE: i128 = 100_000_000_000_000; // 1.00
+    
+    for i in 0..prices.len() {
+        if let Some(Some((price, _))) = prices.get(i) {
+            let deviation = (price - TARGET_PRICE).abs();
+            is_pegged.push_back(deviation < PEG_THRESHOLD);
+        } else {
+            is_pegged.push_back(false);
+        }
+    }
+    
+    is_pegged
+}
+```
+
+## Performance Optimization
+
+### Batch Size Recommendations
+
+```rust
+// ✅ Good: 3-10 assets per batch
+let assets = vec![btc_usd, eth_usd, xlm_usd];
+
+// ⚠️ Acceptable: 10-20 assets
+let assets = vec![/* 15 assets */];
+
+// ❌ Avoid: Too many assets
+let assets = vec![/* 100+ assets */]; // May hit gas limits
+```
+
+### Caching Results
+
+Store frequently used prices:
+
+```rust
+const CACHE_DURATION: u64 = 60; // 1 minute
+
+pub fn get_cached_prices(env: Env, oracle: Address) -> Vec<Option<(i128, u64)>> {
+    let cache_key = Symbol::new(&env, "price_cache");
+    let cache_time_key = Symbol::new(&env, "cache_time");
+    
+    // Check cache
+    let current_time = env.ledger().timestamp();
+    let cached_time: Option<u64> = env.storage().temporary().get(&cache_time_key);
+    
+    if let Some(time) = cached_time {
+        if current_time - time < CACHE_DURATION {
+            // Return cached prices
+            return env.storage().temporary().get(&cache_key).unwrap();
+        }
+    }
+    
+    // Fetch fresh prices
+    let prices = Self::get_crypto_prices(env.clone(), oracle);
+    
+    // Update cache
+    env.storage().temporary().set(&cache_key, &prices);
+    env.storage().temporary().set(&cache_time_key, &current_time);
+    
+    prices
+}
+```
+
+## Testing
+
+### Mock Multiple Prices
+
+```rust
+#[test]
+fn test_portfolio_value() {
+    let env = Env::default();
+    
+    // Mock oracle with multiple prices
+    let oracle_id = env.register_contract_wasm(None, oracle::WASM);
+    
+    // Set up mock prices
+    let mock_prices = vec![
+        Some((6500000000000000000, 1000)), // BTC: $65,000
+        Some((320000000000000000, 1000)),  // ETH: $3,200
+        Some((12000000000000, 1000)),      // XLM: $0.12
+    ];
+    
+    // Test portfolio calculation
+    let value = contract.get_portfolio_value(
+        env,
+        oracle_id,
+        1,      // 1 BTC
+        10,     // 10 ETH
+        10000,  // 10,000 XLM
+    );
+    
+    assert_eq!(value, 98200); // $98,200
+}
+```
+
+## Common Use Cases
+
+### DeFi Protocol Dashboard
+
+```rust
+pub fn get_protocol_stats(
+    env: Env,
+    oracle: Address,
+) -> ProtocolStats {
+    let prices = Self::get_crypto_prices(env.clone(), oracle);
+    
+    ProtocolStats {
+        total_tvl: calculate_tvl(&prices),
+        btc_tvl: calculate_asset_tvl(prices.get(0), btc_deposits),
+        eth_tvl: calculate_asset_tvl(prices.get(1), eth_deposits),
+        xlm_tvl: calculate_asset_tvl(prices.get(2), xlm_deposits),
+    }
+}
+```
+
+### Liquidity Pool Pricing
+
+```rust
+pub fn get_pool_value(
+    env: Env,
+    oracle: Address,
+    token0_reserves: i128,
+    token1_reserves: i128,
+) -> i128 {
+    let mut assets = vec![&env];
+    assets.push_back((token0_symbol, symbol_short!("USD")));
+    assets.push_back((token1_symbol, symbol_short!("USD")));
+    
+    let prices = get_prices(oracle, assets);
+    
+    let value0 = (token0_reserves * prices.get(0).unwrap().unwrap().0) / DECIMALS;
+    let value1 = (token1_reserves * prices.get(1).unwrap().unwrap().0) / DECIMALS;
+    
+    value0 + value1
+}
+```
+
+## Best Practices
+
+### ✅ Do's
+
+- Batch related queries together
+- Handle missing prices gracefully
+- Validate all prices in the response
+- Check staleness for all prices
+- Limit batch size to avoid gas limits
+
+### ❌ Don'ts
+
+- Don't query assets individually when you need multiple
+- Don't assume all prices will be available
+- Don't ignore the order of results
+- Don't batch unrelated queries
+
+## Next Steps
+
+You now know how to efficiently query multiple assets! Next:
+
+- [Lending Protocol](/lending-protocol) - Build a complete DeFi protocol
+- [Price Aggregation](https://reflector.network/docs/aggregation)
+- [Gas Optimization Guide](https://soroban.stellar.org/docs/learn/optimization)
+
+## Resources
+
+- [Reflector API Reference](https://reflector.network/docs/api)
+- [Soroban Vectors](https://soroban.stellar.org/docs/learn/types)
+- [Performance Tuning](https://soroban.stellar.org/docs/learn/performance)
+

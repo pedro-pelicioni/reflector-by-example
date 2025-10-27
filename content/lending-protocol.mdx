@@ -1,0 +1,457 @@
+---
+title: Lending Protocol Example
+description: Build a complete DeFi lending protocol using Reflector Oracle for collateral management
+---
+
+# Lending Protocol
+
+Let's build a real DeFi application! This tutorial demonstrates a lending protocol that uses Reflector Oracle to manage collateralized loans.
+
+## The Contract
+
+<Playground snippetFile="lending-protocol.rs" />
+
+## Protocol Overview
+
+This lending protocol allows users to:
+
+1. **Deposit ETH as collateral**
+2. **Borrow USDC against collateral**
+3. **Maintain 150% collateralization ratio**
+4. **Get liquidated if undercollateralized**
+
+### Key Concepts
+
+**Collateralization Ratio:** The ratio of collateral value to borrowed value.
+
+```
+Collateral Ratio = (Collateral Value / Debt Value) × 100
+```
+
+**Example:**
+- Deposit: 10 ETH @ $3,200 = $32,000 collateral
+- Borrow: $20,000 USDC
+- Ratio: ($32,000 / $20,000) × 100 = 160%
+- Status: ✅ Healthy (above 150% minimum)
+
+## Contract Structure
+
+### Position Storage
+
+```rust
+#[contracttype]
+#[derive(Clone)]
+pub struct Position {
+    pub collateral_amount: i128,  // Amount of collateral deposited
+    pub debt_amount: i128,         // Amount borrowed
+}
+```
+
+Each user's position tracks:
+- How much collateral they deposited
+- How much they've borrowed
+
+### Error Handling
+
+```rust
+#[contracterror]
+pub enum Error {
+    InsufficientCollateral = 1,  // Not enough collateral to borrow
+    PositionNotFound = 2,         // User has no position
+    PriceNotAvailable = 3,        // Oracle price unavailable
+    Undercollateralized = 4,      // Position can be liquidated
+}
+```
+
+## Core Functions
+
+### 1. Borrow Function
+
+```rust
+pub fn borrow(
+    env: Env,
+    oracle: Address,
+    borrower: Address,
+    collateral_eth: i128,
+    borrow_usdc: i128,
+) -> Result<(), Error>
+```
+
+**Process:**
+
+1. Get current ETH/USD price from oracle
+2. Calculate collateral value in USD
+3. Check if collateral meets 150% requirement
+4. Store position if valid
+
+**Example:**
+```rust
+// User wants to borrow $10,000 USDC
+// ETH price: $3,200
+// Required collateral: $10,000 × 1.5 = $15,000
+// ETH needed: $15,000 / $3,200 = 4.6875 ETH
+
+contract.borrow(
+    env,
+    oracle,
+    user_address,
+    5_000_000_000_000_000, // 5 ETH (with decimals)
+    10_000_000_000,         // $10,000 USDC
+);
+```
+
+### 2. Liquidation Check
+
+```rust
+pub fn is_liquidatable(
+    env: Env,
+    oracle: Address,
+    borrower: Address,
+) -> Result<bool, Error>
+```
+
+**Checks if a position should be liquidated:**
+
+```rust
+// Get user's position
+let position = get_position(borrower)?;
+
+// Get current ETH price
+let eth_price = get_oracle_price(oracle)?;
+
+// Calculate current collateral value
+let collateral_value = (position.collateral_amount * eth_price) / DECIMALS;
+
+// Calculate minimum required collateral
+let required_collateral = (position.debt_amount * 150) / 100;
+
+// Can liquidate if below threshold
+return collateral_value < required_collateral;
+```
+
+**Example Scenarios:**
+
+```
+Scenario 1: Healthy Position
+- Collateral: 10 ETH @ $3,200 = $32,000
+- Debt: $20,000
+- Ratio: 160% ✅ Safe
+
+Scenario 2: Price Drop - Liquidatable
+- Collateral: 10 ETH @ $2,800 = $28,000  
+- Debt: $20,000
+- Ratio: 140% ❌ Can be liquidated
+
+Scenario 3: Borrowed More - Liquidatable
+- Collateral: 10 ETH @ $3,200 = $32,000
+- Debt: $22,000
+- Ratio: 145% ❌ Can be liquidated
+```
+
+### 3. Health Factor
+
+```rust
+pub fn get_health_factor(
+    env: Env,
+    oracle: Address,
+    borrower: Address,
+) -> Result<i128, Error>
+```
+
+Returns health factor scaled by 100:
+- **> 150**: Healthy
+- **150**: At liquidation threshold
+- **< 150**: Undercollateralized
+
+**Calculation:**
+
+```rust
+health_factor = (collateral_value / debt) × 100
+
+Examples:
+- $32,000 collateral / $20,000 debt = 160
+- $30,000 collateral / $20,000 debt = 150 (threshold)
+- $28,000 collateral / $20,000 debt = 140 (liquidatable)
+```
+
+## Oracle Integration
+
+### Getting Price Data
+
+```rust
+fn get_eth_price(env: Env, oracle: Address) -> Result<i128, Error> {
+    let price_data: Option<(i128, u64)> = env.invoke_contract(
+        &oracle,
+        &Symbol::new(&env, "lastprice"),
+        (symbol_short!("ETH"), symbol_short!("USD")).into_val(&env),
+    );
+    
+    let (price, _timestamp) = price_data.ok_or(Error::PriceNotAvailable)?;
+    
+    Ok(price)
+}
+```
+
+**Why this matters:**
+- Accurate prices = fair liquidations
+- Stale prices = exploitation risk
+- No price = protocol can't function
+
+## Price Precision Handling
+
+All calculations must account for 14 decimal places:
+
+```rust
+const PRICE_DECIMALS: i128 = 100_000_000_000_000; // 10^14
+
+// Calculate USD value
+let collateral_value = (collateral_amount * eth_price) / PRICE_DECIMALS;
+
+// Example with real numbers:
+// collateral_amount = 10 (10 ETH, simplified)
+// eth_price = 3200_00000000000000 ($3,200 with 14 decimals)
+// collateral_value = (10 * 3200_00000000000000) / 100_000_000_000_000
+//                  = 32000 ($32,000)
+```
+
+## Advanced Features
+
+### Interest Accrual
+
+Add interest over time:
+
+```rust
+pub fn accrue_interest(env: Env, borrower: Address) -> Result<(), Error> {
+    let mut position = get_position(&env, borrower)?;
+    
+    let last_update = get_last_update(&env, &borrower);
+    let current_time = env.ledger().timestamp();
+    let time_elapsed = current_time - last_update;
+    
+    // 5% APR = 0.05 / 31536000 seconds per year
+    let interest_rate_per_second = 5 / 31536000;
+    let interest = (position.debt_amount * interest_rate_per_second * time_elapsed as i128) / 100;
+    
+    position.debt_amount += interest;
+    save_position(&env, borrower, position);
+    
+    Ok(())
+}
+```
+
+### Partial Repayment
+
+Allow users to repay part of their debt:
+
+```rust
+pub fn repay(
+    env: Env,
+    borrower: Address,
+    repay_amount: i128,
+) -> Result<(), Error> {
+    let mut position = get_position(&env, borrower)?;
+    
+    // Reduce debt
+    position.debt_amount -= repay_amount;
+    
+    // If fully repaid, return collateral
+    if position.debt_amount == 0 {
+        transfer_collateral(borrower, position.collateral_amount);
+        remove_position(&env, borrower);
+    } else {
+        save_position(&env, borrower, position);
+    }
+    
+    Ok(())
+}
+```
+
+### Liquidation with Incentive
+
+Liquidators get a bonus for keeping protocol healthy:
+
+```rust
+pub fn liquidate(
+    env: Env,
+    oracle: Address,
+    borrower: Address,
+    liquidator: Address,
+) -> Result<(), Error> {
+    // Check if liquidatable
+    if !Self::is_liquidatable(env.clone(), oracle.clone(), borrower.clone())? {
+        return Err(Error::NotLiquidatable);
+    }
+    
+    let position = get_position(&env, borrower)?;
+    
+    // Liquidator pays debt
+    transfer_usdc(liquidator.clone(), position.debt_amount);
+    
+    // Liquidator gets collateral + 10% bonus
+    let liquidation_bonus = position.collateral_amount / 10;
+    let liquidator_reward = position.collateral_amount + liquidation_bonus;
+    
+    transfer_eth(liquidator, liquidator_reward);
+    
+    // Remove position
+    remove_position(&env, borrower);
+    
+    Ok(())
+}
+```
+
+## Testing
+
+### Test Scenarios
+
+```rust
+#[test]
+fn test_healthy_borrow() {
+    let env = Env::default();
+    // Mock ETH price at $3,200
+    
+    let result = contract.borrow(
+        env.clone(),
+        oracle,
+        borrower,
+        10, // 10 ETH
+        20_000, // $20,000 USDC
+    );
+    
+    assert!(result.is_ok());
+    
+    let health = contract.get_health_factor(env, oracle, borrower).unwrap();
+    assert_eq!(health, 160); // 160%
+}
+
+#[test]
+fn test_liquidation() {
+    let env = Env::default();
+    
+    // Borrow at $3,200 ETH
+    contract.borrow(env.clone(), oracle, borrower, 10, 20_000).unwrap();
+    
+    // Price drops to $2,800
+    update_mock_price(oracle, 2_800);
+    
+    // Should be liquidatable
+    let can_liquidate = contract.is_liquidatable(env, oracle, borrower).unwrap();
+    assert!(can_liquidate);
+}
+```
+
+## Security Considerations
+
+### 1. Oracle Manipulation
+
+```rust
+// ✅ Add staleness checks
+let (price, timestamp) = price_data?;
+if env.ledger().timestamp() - timestamp > 300 {
+    return Err(Error::PriceTooOld);
+}
+
+// ✅ Add price change limits
+if price_changed_more_than_20_percent() {
+    return Err(Error::PriceVolatile);
+}
+```
+
+### 2. Reentrancy Protection
+
+```rust
+// ✅ Check-Effects-Interactions pattern
+pub fn borrow(/*...*/) -> Result<(), Error> {
+    // 1. Checks
+    validate_collateral()?;
+    
+    // 2. Effects
+    save_position(borrower, position);
+    
+    // 3. Interactions
+    transfer_usdc(borrower, amount);
+    
+    Ok(())
+}
+```
+
+### 3. Integer Overflow
+
+```rust
+// ✅ Use checked arithmetic
+let value = collateral_amount
+    .checked_mul(price)
+    .ok_or(Error::Overflow)?
+    .checked_div(DECIMALS)
+    .ok_or(Error::Overflow)?;
+```
+
+## Production Deployment
+
+Before deploying:
+
+1. ✅ **Audit smart contract**
+2. ✅ **Test on testnet extensively**
+3. ✅ **Set up price monitoring**
+4. ✅ **Implement circuit breakers**
+5. ✅ **Add admin functions (pause, upgrade)**
+6. ✅ **Configure insurance fund**
+7. ✅ **Set up liquidation bots**
+
+## Real-World Extensions
+
+### Multi-Collateral Support
+
+```rust
+pub fn borrow_multi_collateral(
+    env: Env,
+    oracle: Address,
+    collaterals: Vec<(Symbol, i128)>,
+    borrow_amount: i128,
+) -> Result<(), Error> {
+    // Calculate total collateral value across all assets
+    let total_value = calculate_portfolio_value(env, oracle, collaterals)?;
+    
+    // Check against total requirement
+    let required = (borrow_amount * 150) / 100;
+    
+    if total_value < required {
+        return Err(Error::InsufficientCollateral);
+    }
+    
+    Ok(())
+}
+```
+
+### Variable Interest Rates
+
+```rust
+pub fn get_interest_rate(env: Env) -> i128 {
+    let utilization = calculate_utilization(&env);
+    
+    // Higher utilization = higher rates
+    if utilization < 50 {
+        5 // 5% APR
+    } else if utilization < 80 {
+        10 // 10% APR
+    } else {
+        20 // 20% APR
+    }
+}
+```
+
+## Next Steps
+
+Congratulations! You've built a complete DeFi lending protocol. Continue learning:
+
+- [Advanced Oracle Patterns](https://reflector.network/docs/advanced)
+- [DeFi Security Best Practices](https://reflector.network/docs/security)
+- [Liquidation Bot Setup](https://reflector.network/docs/liquidation-bots)
+
+## Resources
+
+- [Reflector Oracle Docs](https://reflector.network/docs)
+- [Soroban DeFi Examples](https://soroban.stellar.org/docs/examples)
+- [Smart Contract Security](https://soroban.stellar.org/docs/security)
+- [Join Discord Community](https://discord.com/invite/v2ggfDty2d)
+

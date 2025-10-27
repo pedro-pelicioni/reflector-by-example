@@ -1,0 +1,261 @@
+---
+title: Installation & Setup
+description: Set up your Soroban development environment to start building with Reflector
+---
+
+# Installation & Setup
+
+This guide will help you set up everything you need to start building with Reflector Oracle on Soroban.
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- **Rust** (latest stable version)
+- **Node.js** 18+ (for running tests)
+- Basic knowledge of Rust programming
+- Familiarity with blockchain concepts
+
+## Install Rust
+
+If you don't have Rust installed:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Verify installation:
+
+```bash
+rustc --version
+cargo --version
+```
+
+## Install Soroban CLI
+
+The Soroban CLI is essential for building and deploying contracts:
+
+```bash
+cargo install --locked soroban-cli --features opt
+```
+
+Verify installation:
+
+```bash
+soroban --version
+```
+
+## Configure Network
+
+Add Stellar Testnet for development:
+
+```bash
+soroban network add \
+  --global testnet \
+  --rpc-url https://soroban-testnet.stellar.org:443 \
+  --network-passphrase "Test SDF Network ; September 2015"
+```
+
+## Create a Wallet
+
+Generate a new keypair for testing:
+
+```bash
+soroban keys generate --global alice --network testnet
+```
+
+Fund your account with Friendbot:
+
+```bash
+soroban keys address alice
+# Copy the address and visit:
+# https://laboratory.stellar.org/#account-creator?network=test
+```
+
+## Create Your First Project
+
+Initialize a new Soroban contract:
+
+```bash
+soroban contract init my-oracle-contract
+cd my-oracle-contract
+```
+
+Project structure:
+
+```
+my-oracle-contract/
+├── Cargo.toml
+├── src/
+│   └── lib.rs
+└── Cargo.lock
+```
+
+## Add Soroban SDK
+
+Your `Cargo.toml` should include:
+
+```toml
+[package]
+name = "my-oracle-contract"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = "21.0.0"
+
+[dev-dependencies]
+soroban-sdk = { version = "21.0.0", features = ["testutils"] }
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+```
+
+## Build Your Contract
+
+Compile the contract:
+
+```bash
+soroban contract build
+```
+
+The compiled WASM file will be in:
+```
+target/wasm32-unknown-unknown/release/my_oracle_contract.wasm
+```
+
+## Run Tests
+
+Execute contract tests:
+
+```bash
+cargo test
+```
+
+## Deploy to Testnet
+
+1. Build the optimized contract:
+
+```bash
+soroban contract build
+```
+
+2. Deploy to testnet:
+
+```bash
+soroban contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/my_oracle_contract.wasm \
+  --network testnet \
+  --source alice
+```
+
+3. Save the contract ID - you'll need it to interact with your contract!
+
+## Reflector Oracle Addresses
+
+For testnet development, use these oracle contract addresses:
+
+**Testnet Oracle**: `CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`
+
+> Note: Get the latest testnet and mainnet addresses from [Reflector Docs](https://reflector.network/docs)
+
+## IDE Setup
+
+### VS Code (Recommended)
+
+Install these extensions:
+
+1. **rust-analyzer** - Rust language support
+2. **Even Better TOML** - TOML syntax highlighting
+3. **Soroban** - Soroban-specific tooling
+
+### Settings
+
+Add to your `.vscode/settings.json`:
+
+```json
+{
+  "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
+  "rust-analyzer.checkOnSave.allTargets": false
+}
+```
+
+## Verify Your Setup
+
+Create a simple test contract:
+
+```rust
+#![no_std]
+use soroban_sdk::{contract, contractimpl, Env, Symbol};
+
+#[contract]
+pub struct TestContract;
+
+#[contractimpl]
+impl TestContract {
+    pub fn hello(env: Env, name: Symbol) -> Symbol {
+        Symbol::new(&env, "Hello")
+    }
+}
+```
+
+Build and test:
+
+```bash
+cargo build --target wasm32-unknown-unknown --release
+cargo test
+```
+
+If everything compiles successfully, you're ready to go! 🎉
+
+## Troubleshooting
+
+### "cannot find wasm32-unknown-unknown"
+
+Install the target:
+
+```bash
+rustup target add wasm32-unknown-unknown
+```
+
+### Compilation errors
+
+Make sure you're using the latest Rust:
+
+```bash
+rustup update
+```
+
+### Network connection issues
+
+Verify RPC endpoint is accessible:
+
+```bash
+curl https://soroban-testnet.stellar.org:443
+```
+
+## Next Steps
+
+Now that your environment is set up:
+
+- [First Query](/first-query) - Make your first Reflector query
+- [Price Consumer](/price-consumer) - Build a production contract
+- [Official Soroban Docs](https://soroban.stellar.org/docs)
+
+## Additional Resources
+
+- [Soroban Documentation](https://soroban.stellar.org)
+- [Rust Book](https://doc.rust-lang.org/book/)
+- [Stellar Laboratory](https://laboratory.stellar.org)
+- [Reflector Discord](https://discord.com/invite/v2ggfDty2d)
+
