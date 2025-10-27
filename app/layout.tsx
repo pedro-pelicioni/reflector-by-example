@@ -7,10 +7,6 @@ export const metadata: Metadata = {
   title: "Reflector by Example - Master Oracle Integration on Stellar",
   description: "A comprehensive, hands-on guide to building with Reflector's decentralized oracle network on Stellar's Soroban smart contracts",
   keywords: "reflector,oracle,stellar,soroban,blockchain,price-feeds,smart-contracts,defi",
-  icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
-  },
   openGraph: {
     title: "Reflector by Example",
     description: "Learn Reflector Oracle through interactive code examples",
