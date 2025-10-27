@@ -1,190 +1,304 @@
 # Reflector by Example
 
-> Master Oracle Integration on Stellar's Soroban
+> An interactive, hands-on guide to mastering Reflector Oracle integration on Stellar's Soroban platform
 
-Um guia prático e interativo para aprender a integrar Reflector Oracle em contratos inteligentes Soroban.
+[![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js%2014-black)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Styled%20with-Tailwind%20CSS-38bdf8)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 
-## 🎯 O Que É Este Projeto
+**Live Demo**: [Coming Soon]  
+**Repository**: https://github.com/pedro-pelicioni/reflector-by-example
 
-Reflector by Example é uma documentação interativa que ensina desenvolvedores a usar Reflector Oracle através de exemplos práticos de código. Cada tutorial inclui:
+## 🎯 Project Overview
 
-- 📚 Explicações conceituais claras
-- 💻 Código Rust completo e comentado
-- 🎮 Playground interativo integrado (Soroban IDE)
-- ✅ Melhores práticas de produção
+Reflector by Example is a comprehensive learning platform designed to help developers quickly integrate Reflector's decentralized oracle network into their Soroban smart contracts. Inspired by the "by Example" methodology, this project provides practical, production-ready code examples with interactive playgrounds.
 
-## 🚀 Começando
+### Why This Project?
 
-### Pré-requisitos
+- **Learning Curve**: Oracle integration can be complex for developers new to Soroban
+- **Best Practices**: Scattered documentation makes it hard to find production-ready patterns
+- **Interactive Learning**: Developers learn better by seeing and modifying working code
+- **Community Growth**: Lowering the barrier to entry increases Reflector adoption
 
-- Node.js 18+
-- npm ou yarn
+## ✨ Key Features
 
-### Instalação
+### 📚 Comprehensive Tutorials
 
-```bash
-git clone https://github.com/pedro-pelicioni/reflector-by-example.git
-cd reflector-by-example
-npm install
-```
+Six complete tutorials covering the entire journey from basics to production:
 
-### Desenvolvimento
+1. **Introduction to Reflector Oracle**
+   - What oracles are and why they're critical for DeFi
+   - Reflector's architecture and advantages
+   - Available price feeds and use cases
 
-```bash
-npm run dev
-```
+2. **Installation & Setup**
+   - Complete Soroban development environment setup
+   - Wallet configuration and testnet funding
+   - First contract deployment walkthrough
 
-Acesse http://localhost:3000
+3. **First Oracle Query**
+   - Basic price query implementation (BTC/USD)
+   - Understanding return values and precision (14 decimals)
+   - Asset pair syntax and supported symbols
 
-### Build de Produção
+4. **Production-Ready Price Consumer**
+   - Comprehensive error handling with custom error types
+   - Staleness validation (5-minute default threshold)
+   - Price validation and sanity checks
+   - Helper functions for common operations
 
-```bash
-npm run build
-```
+5. **Multi-Asset Queries**
+   - Batch queries using `lastprices` function
+   - Portfolio valuation across multiple assets
+   - Cross-rate calculations
+   - Stablecoin depeg detection
+   - Performance optimization strategies
 
-O build gera um site estático na pasta `out/` pronto para deploy.
+6. **DeFi Lending Protocol**
+   - Complete lending protocol implementation
+   - Collateral management with 150% ratio
+   - Liquidation engine and health factors
+   - Interest accrual mechanisms
+   - Security considerations and best practices
 
-## 📖 Tutoriais Incluídos
+### 💻 Production-Ready Code
 
-### Getting Started
-- **Introduction** - O que são oracles e por que usar Reflector
-- **Installation** - Setup do ambiente Soroban
+All Rust code examples include:
 
-### Basics
-- **First Query** - Sua primeira consulta ao oracle
-- **Price Consumer** - Contrato com error handling e validações
+- ✅ Comprehensive inline documentation
+- ✅ Error handling with custom error types
+- ✅ Input validation and edge case handling
+- ✅ Gas-optimized implementations
+- ✅ Security best practices
+- ✅ Test-ready structure
 
-### Advanced
-- **Multi-Asset Queries** - Consultas em batch eficientes
-- **Lending Protocol** - Protocolo DeFi completo com liquidações
+### 🎮 Interactive Playground Integration
 
-## 🛠️ Tecnologias
+Each tutorial features an embedded Soroban Playground that allows developers to:
 
-- **Next.js 14+** - Framework React com App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Estilização
-- **MDX** - Conteúdo com componentes React
-- **next-mdx-remote** - Processamento de MDX
+- Edit code directly in the browser
+- Compile contracts in real-time
+- Deploy to Stellar testnet
+- Interact with deployed contracts
+- No local setup required for initial exploration
 
-## 📁 Estrutura do Projeto
+**Technical Implementation**: Uses GitHub Raw URLs to load code snippets into [Soroban Playground](https://soropg.com), enabling seamless integration without CORS issues.
+
+### 🎨 Modern, Developer-Friendly UI
+
+- **Dark Theme**: Easy on the eyes with Reflector brand colors
+- **Responsive Design**: Works perfectly on desktop, tablet, and mobile
+- **Fast Navigation**: Intuitive sidebar with categorized sections
+- **Syntax Highlighting**: Beautiful code presentation
+- **SEO Optimized**: Discoverability through search engines
+
+## 📊 Technical Architecture
+
+### Stack
+
+- **Framework**: Next.js 14+ with App Router
+- **Language**: TypeScript for type safety
+- **Styling**: Tailwind CSS with custom Reflector theme
+- **Content**: MDX (Markdown + React components)
+- **Rendering**: Static Site Generation (SSG) for optimal performance
+- **Deployment**: Platform-agnostic (Vercel, Netlify, GitHub Pages)
+
+### Project Structure
 
 ```
 reflector-by-example/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Layout principal
-│   ├── page.tsx           # Homepage
-│   └── [slug]/page.tsx    # Rotas dinâmicas dos tutoriais
-├── components/            # Componentes React
-│   ├── Header.tsx        # Cabeçalho
-│   ├── Sidebar.tsx       # Navegação lateral
-│   └── Playground.tsx    # Integração Soroban Playground
-├── content/              # Tutoriais MDX
+├── app/                      # Next.js App Router
+│   ├── layout.tsx           # Root layout with Header & Sidebar
+│   ├── page.tsx             # Homepage with feature cards
+│   └── [slug]/page.tsx      # Dynamic tutorial pages
+├── components/              # React components
+│   ├── Header.tsx          # Navigation header with social links
+│   ├── Sidebar.tsx         # Tutorial navigation sidebar
+│   └── Playground.tsx      # Soroban Playground integration
+├── content/                # Tutorial MDX files
 │   ├── introduction.mdx
+│   ├── installation.mdx
 │   ├── first-query.mdx
-│   └── ...
-├── snippets/            # Código Rust dos exemplos
+│   ├── price-consumer.mdx
+│   ├── multi-asset.mdx
+│   └── lending-protocol.mdx
+├── snippets/               # Rust code examples
 │   ├── first-query.rs
 │   ├── price-consumer.rs
-│   └── ...
-└── lib/                # Utilidades
-    └── content.ts      # Carregamento de conteúdo MDX
+│   ├── multi-asset.rs
+│   └── lending-protocol.rs
+├── lib/                    # Utilities
+│   └── content.ts         # MDX content loading
+└── public/                # Static assets
+    └── logo.png
 ```
 
-## 🎮 Integração com Soroban Playground
+## 🚀 Getting Started
 
-Este projeto usa uma integração única com o [Soroban Playground](https://soropg.com) via GitHub Raw URLs:
+### Prerequisites
 
-1. Snippets de código Rust são armazenados em `/snippets/*.rs`
-2. Após commit, ficam disponíveis via GitHub Raw
-3. Playground carrega o código via parâmetro `?codeUrl=`
-4. Sem problemas de CORS, sem servidor adicional necessário
+- Node.js 18 or higher
+- npm or yarn package manager
 
-```typescript
-// Exemplo de uso do componente Playground
-<Playground snippetFile="first-query.rs" />
-```
-
-## 🎨 Branding
-
-Cores oficiais do Reflector:
-- Primary: `#6366f1`
-- Secondary: `#818cf8`
-- Background: `#0f172a`
-
-## 📝 Adicionando Novos Tutoriais
-
-1. Crie um snippet Rust em `/snippets/novo-tutorial.rs`
-2. Crie o conteúdo MDX em `/content/novo-tutorial.mdx`:
-
-```mdx
----
-title: Título do Tutorial
-description: Descrição breve
----
-
-# Título do Tutorial
-
-Conteúdo do tutorial...
-
-<Playground snippetFile="novo-tutorial.rs" />
-```
-
-3. Adicione à navegação em `/components/Sidebar.tsx`
-
-## 🚢 Deploy
-
-### GitHub Pages
+### Local Development
 
 ```bash
+# Clone the repository
+git clone https://github.com/pedro-pelicioni/reflector-by-example.git
+cd reflector-by-example
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Visit http://localhost:3000 to see the site locally.
+
+### Building for Production
+
+```bash
+# Create optimized production build
 npm run build
-# Faça deploy da pasta out/
+
+# Preview production build locally
+npx serve@latest out
 ```
 
-### Vercel
+The build generates a static site in the `out/` directory, ready for deployment to any static hosting platform.
 
-```bash
-vercel deploy
-```
+## 🎯 Use Cases Demonstrated
 
-### Netlify
+### DeFi Applications
+- **Lending Protocols**: Collateral valuation, liquidation thresholds
+- **DEXs**: Fair price discovery, slippage protection
+- **Stablecoins**: Peg maintenance and monitoring
+- **Yield Aggregators**: Portfolio optimization
 
-```bash
-netlify deploy --dir=out --prod
-```
+### Risk Management
+- **Circuit Breakers**: Halt operations during extreme volatility
+- **Staleness Checks**: Prevent using outdated price data
+- **Multi-Oracle Aggregation**: Redundancy and manipulation resistance
+- **Health Monitoring**: Position safety calculations
 
-## 🔗 Links Úteis
+### Portfolio Management
+- **Multi-Asset Valuation**: Calculate total portfolio value
+- **Cross-Rate Calculations**: Exchange rates between any asset pairs
+- **Rebalancing Triggers**: Automated portfolio rebalancing
+- **Performance Tracking**: Historical value tracking
 
-- [Reflector Network](https://reflector.network)
-- [Documentação Oficial](https://reflector.network/docs)
-- [Discord](https://discord.com/invite/v2ggfDty2d)
-- [Twitter](https://x.com/in_reflector)
-- [Soroban Docs](https://soroban.stellar.org)
+## ⚠️ Known Issue: Playground Integration
 
-## 📄 Licença
+**Current Status**: The interactive playground integration uses GitHub Raw URLs to load code snippets. Due to GitHub's current rate limiting on Raw API requests (Error 429), the playgrounds may temporarily fail to load code automatically.
 
-MIT License - veja o arquivo LICENSE para detalhes.
+**Reference**: This is a known GitHub infrastructure issue affecting multiple projects ([example issue](https://github.com/webmin/webmin/issues/2575))
 
-## 🤝 Contribuindo
+**Workaround**: All Rust code examples are available directly in the `/snippets` folder and can be manually copied into the [Soroban Playground](https://soropg.com).
 
-Contribuições são bem-vindas! Por favor:
+**Expected Resolution**: GitHub rate limits typically reset within 1-24 hours. This is a temporary limitation of using the GitHub Raw CDN.
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/NovoTutorial`)
-3. Commit suas mudanças (`git commit -m 'Add: novo tutorial X'`)
-4. Push para a branch (`git push origin feature/NovoTutorial`)
-5. Abra um Pull Request
+## 🗺️ Roadmap
 
-## 💬 Suporte
+### Phase 1: Core Tutorials ✅
+- [x] Introduction and installation guides
+- [x] Basic query examples
+- [x] Production patterns with error handling
+- [x] Multi-asset batch queries
+- [x] Complete DeFi protocol example
 
-- Abra uma [Issue](https://github.com/pedro-pelicioni/reflector-by-example/issues)
-- Entre no [Discord do Reflector](https://discord.com/invite/v2ggfDty2d)
+### Phase 2: Advanced Patterns (In Progress)
+- [ ] Time-Weighted Average Price (TWAP)
+- [ ] Multi-oracle aggregation strategies
+- [ ] Price deviation alerts and monitoring
+- [ ] Advanced liquidation strategies
+- [ ] Cross-chain price feeds
 
-## 🙏 Agradecimentos
+### Phase 3: Additional Use Cases
+- [ ] NFT dynamic pricing
+- [ ] Options pricing with Black-Scholes
+- [ ] Perpetual futures funding rates
+- [ ] Insurance protocol parametric triggers
+- [ ] Prediction markets
 
-- Time Reflector pela infraestrutura de oracle
-- Stellar Development Foundation pelo Soroban
-- Comunidade open-source
+### Phase 4: Developer Tools
+- [ ] Code snippet generator
+- [ ] Contract testing templates
+- [ ] Deployment scripts
+- [ ] Monitoring dashboard examples
+
+## 🤝 Contributing
+
+Contributions are welcome! This project aims to be a community resource for learning Reflector integration.
+
+### How to Contribute
+
+1. **Add New Tutorials**
+   - Create Rust snippet in `/snippets/your-example.rs`
+   - Write MDX tutorial in `/content/your-example.mdx`
+   - Add navigation link in `/components/Sidebar.tsx`
+
+2. **Improve Existing Content**
+   - Fix typos or clarify explanations
+   - Add more code comments
+   - Enhance error handling examples
+
+3. **Share Feedback**
+   - Open issues for bugs or suggestions
+   - Discuss ideas in GitHub Discussions
+   - Share on social media
+
+### Contribution Guidelines
+
+- Follow existing code style and formatting
+- Include comprehensive comments in Rust code
+- Test all code examples before submitting
+- Write clear, beginner-friendly explanations
+- Add practical use case examples
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+This project is open source and freely available for educational purposes, commercial use, and modification.
+
+## 🔗 Links & Resources
+
+### Reflector Network
+- [Official Website](https://reflector.network)
+- [Documentation](https://reflector.network/docs)
+- [Discord Community](https://discord.com/invite/v2ggfDty2d)
+- [Twitter/X](https://x.com/in_reflector)
+
+### Stellar & Soroban
+- [Soroban Documentation](https://soroban.stellar.org)
+- [Stellar Developers Discord](https://discord.gg/stellardev)
+- [Soroban Examples](https://soroban.stellar.org/docs/examples)
+- [Stellar Laboratory](https://laboratory.stellar.org)
+
+### Development Tools
+- [Soroban Playground](https://soropg.com)
+- [Stellar Expert Explorer](https://stellar.expert)
+- [Soroban CLI](https://github.com/stellar/soroban-cli)
+
+## 👥 Authors & Acknowledgments
+
+**Created by**: Pedro Pelicioni ([@pedro-pelicioni](https://github.com/pedro-pelicioni))
+
+**Special Thanks**:
+- Reflector Network team for building robust oracle infrastructure
+- Stellar Development Foundation for Soroban platform
+- Soroban by Example for inspiration on tutorial format
+- Open source community for invaluable tools and libraries
+
+## 📧 Contact & Support
+
+- **GitHub Issues**: For bugs, feature requests, and technical questions
+- **Reflector Discord**: For oracle-specific questions and community support
+- **Twitter/X**: [@pedro-pelicioni](https://twitter.com/pedro-pelicioni) for project updates
 
 ---
 
-Desenvolvido com ❤️ para a comunidade Stellar
+**Built with ❤️ for the Stellar ecosystem**
+
+*Empowering developers to build the next generation of DeFi applications with reliable, decentralized oracle data.*
