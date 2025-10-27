@@ -6,7 +6,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Styled%20with-Tailwind%20CSS-38bdf8)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 
-**Live Demo**: https://reflector-by-example.vercel.app  
+**Live Demo**: [https://reflector-by-example.vercel.app](https://reflector-by-example.netlify.app/)  
 **Repository**: https://github.com/pedro-pelicioni/reflector-by-example
 
 ## 🎯 Project Overview
